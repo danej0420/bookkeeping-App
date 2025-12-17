@@ -1,0 +1,67 @@
+// Prisma schema defining core bookkeeping models
+// Run `npx prisma migrate dev --name init` after setting DB connection in .env
+
+// Datasource uses DATABASE_URL from environment
+// Example: postgres://user:password@localhost:5432/bookkeeping
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Generator to produce Prisma Client in node_modules
+// Ensure you run `npx prisma generate` after changing the schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  accounts     Account[]
+  transactions Transaction[]
+}
+
+model Category {
+  id               Int           @id @default(autoincrement())
+  name             String        @unique
+  type             CategoryType
+  isTaxDeductible  Boolean       @default(false)
+  transactions     Transaction[]
+}
+
+enum CategoryType {
+  income
+  business_expense
+  personal
+}
+
+model Account {
+  id        Int           @id @default(autoincrement())
+  user      User          @relation(fields: [userId], references: [id])
+  userId    Int
+  name      String
+  provider  String
+  createdAt DateTime      @default(now())
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              Int          @id @default(autoincrement())
+  user            User         @relation(fields: [userId], references: [id])
+  userId          Int
+  account         Account      @relation(fields: [accountId], references: [id])
+  accountId       Int
+  date            DateTime
+  description     String
+  amount          Decimal      @db.Decimal(10, 2)
+  category        Category?    @relation(fields: [categoryId], references: [id])
+  categoryId      Int?
+  isBusiness      Boolean      @default(false)
+  isPersonal      Boolean      @default(false)
+  isTaxDeductible Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+}
